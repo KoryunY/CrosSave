@@ -1,0 +1,27 @@
+﻿<Window x:Class="CrosSave.ConfigPopup"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configure Game" Height="200" Width="400"
+        Background="#1e1e2e" Foreground="White" ResizeMode="CanResize">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Game Name:" Margin="10" Grid.Row="0"/>
+        <TextBox Text="{Binding Name}" Margin="10" Grid.Row="0" IsReadOnly="True"/>
+
+        <TextBlock Text="Config Path:" Margin="10" Grid.Row="1"/>
+        <StackPanel Orientation="Horizontal" Grid.Row="1">
+            <TextBox Text="{Binding ConfigPath}" Width="250" Margin="10" IsReadOnly="True"/>
+            <Button Content="..." Click="SelectFile_Click"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Center">
+            <Button Content="Pull" Click="Pull_Click" Margin="5"/>
+            <Button Content="Push" Click="Push_Click" Margin="5"/>
+        </StackPanel>
+    </Grid>
+</Window>
