@@ -1,6 +1,7 @@
 ﻿<Window x:Class="CrosSave.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="CrosSave" Height="500" Width="800"
         Background="#1e1e2e" Foreground="White">
     <Grid>
@@ -13,18 +14,86 @@
             <Button Content="Refresh 🔄" Click="RefreshData_Click" Padding="5" Background="#3a3f51" Foreground="White"/>
         </StackPanel>
 
-        <ListView ItemsSource="{Binding GameItems}" Grid.Row="1" Margin="10" Background="#252836">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Border BorderBrush="Gray" BorderThickness="1" Padding="10" Margin="5">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Image Source="{Binding ImagePath}" Width="50" Height="50" Margin="5"/>
-                            <TextBlock Text="{Binding Name}" FontSize="16" VerticalAlignment="Center"/>
-                            <Button Content="Configure" Click="OpenPopup_Click" Margin="10"/>
-                        </StackPanel>
-                    </Border>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+        <ScrollViewer Grid.Row="1" Margin="10" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding GameItems}"   
+                          HorizontalContentAlignment="Stretch">
+
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel HorizontalAlignment="Center" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="Gray" BorderThickness="1" Padding="10" Margin="15"
+                                    Width="250" Background="#2b2d3a"
+                                    MouseLeftButtonDown="GameItem_Click">       
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Opacity="0" BlurRadius="0"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="LightBlue" BlurRadius="10" Opacity="0.5"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <Grid MouseLeftButtonDown="GameItem_Click">
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Cursor" Value="Hand"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Image Width="230" Height="130"
+                                           Source="{Binding ImageUrl}"
+                                           Stretch="UniformToFill"
+                                           Margin="0,0,0,10"/>      
+
+                                <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="16"
+                                        Foreground="White" TextWrapping="Wrap" Margin="0,5,0,10"/>
+                                <TextBlock Grid.Row="2"
+                                               Text="✏️ Edit"
+                                               Foreground="LightBlue"
+                                               FontSize="12"
+                                               HorizontalAlignment="Right"
+                                               Margin="0,5,0,0">            
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Opacity" Value="0"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                                    <Setter Property="Opacity" Value="0.8"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
     </Grid>
 </Window>

@@ -5,15 +5,16 @@ using System.Management; //??
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace CrosSave
 {
     public partial class MainWindow : Window
     {
         public ObservableCollection<GameItem> GameItems { get; set; } = new();
-        private const string DataFile = "E:\\Test\\game_data.json"; //TODO: read from configs or etc
-        //private const string DataFile = "C:\\test\\New folder\\game_data.json";
-
+        //private const string DataFile = "E:\\Test\\game_data.json"; //TODO: read from configs or etc
+        private const string DataFile = "C:\\test\\New folder\\game_data.json";
+        //public string ImagePath = "https://tinfoil.media/ti/01003F601025E000/0/0/"
         public MainWindow()
         {
             InitializeComponent();
@@ -51,14 +52,18 @@ namespace CrosSave
             GetSwitch();
         }
 
-        private void OpenPopup_Click(object sender, RoutedEventArgs e)
+        private void GameItem_Click(object sender, MouseButtonEventArgs e)
         {
-            var button = sender as Button;
-            if (button?.DataContext is GameItem item)
+            if (e.ChangedButton == MouseButton.Left && e.ClickCount>0)
             {
-                var popup = new ConfigPopup(item);
-                popup.ShowDialog();
-                SaveGameData();
+                if (sender is Border border && border.DataContext is GameItem item)
+                {
+                    var popup = new ConfigPopup(item);
+                    popup.WindowStartupLocation =WindowStartupLocation.CenterOwner;
+                    popup.Owner = this;
+                    popup.ShowDialog();
+                    SaveGameData();
+                }
             }
         }
 
@@ -96,10 +101,9 @@ namespace CrosSave
     public class GameItem
     {
         public string Name { get; set; } = string.Empty;
-        public string ImagePath { get; set; } = string.Empty;
+        public string GameId { get; set; } = string.Empty;
         public string ConfigPath { get; set; } = string.Empty;
         public bool IsConfigured => !string.IsNullOrEmpty(ConfigPath);
+        public string ImageUrl => $"https://tinfoil.media/ti/{GameId}/0/0/";
     }
-
-
 }

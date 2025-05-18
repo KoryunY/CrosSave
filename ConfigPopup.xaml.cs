@@ -21,10 +21,10 @@ namespace CrosSave
 
         private void SelectFile_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog();
+            var dialog = new OpenFolderDialog();
             if (dialog.ShowDialog() == true)
             {
-                GameItem.ConfigPath = dialog.FileName;
+                GameItem.ConfigPath = dialog.FolderName;
             }
         }
 
