@@ -8,6 +8,7 @@ using Microsoft.Win32;
 
 namespace CrosSave
 {
+    //TODO: select config save/backup save paths, optional backup with boolean,implement nier backup and other customs,loading screen,popup design
     public partial class ConfigPopup : Window
     {
         private GameItem GameItem { get; }
