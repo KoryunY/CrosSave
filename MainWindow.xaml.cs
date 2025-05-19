@@ -23,9 +23,9 @@ namespace CrosSave
                     "CrosSave",
                     "game_data.json"
                 );
-        private const string InstalledGamesPath = @"4: Installed games";
-        private const string SwitchDeviceName = "Switch";
-        private const string SavesPath = @"7: Saves\Installed games";
+        public static string InstalledGamesPath = @"4: Installed games";
+        public static string SwitchDeviceName = "Switch";
+        public static string SavesPath = @"7: Saves\Installed games";
 
         private Dictionary<string, List<GameItem>> UserGameItems { get; set; } = new();
         public ObservableCollection<GameItem> GameItems { get; set; } = new();
