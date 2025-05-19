@@ -8,10 +8,11 @@ using Microsoft.Win32;
 
 namespace CrosSave
 {
-    //TODO: select config save/backup save paths, optional backup with boolean,implement nier backup and other customs,loading screen,popup design
+    //TODO: select config save/backup save paths, optional backup with boolean,implement other customs,loading screen,popup design/custom steamID
     public partial class ConfigPopup : Window
     {
         private GameItem GameItem { get; }
+        const ulong mySteamId64 = 712312312381182128;
 
         public ConfigPopup(GameItem item)
         {
@@ -74,6 +75,15 @@ namespace CrosSave
                     switchDevice.DownloadFile(file, dest);
                 }
 
+                if (GameItem.GameId == "0100B8E016F76000") // NieR:Automata
+                {
+                    string[] nierFiles = Directory.GetFiles(pcSavePath);
+                    foreach (var filePath in nierFiles)
+                    {
+                        PatchNieRAutomataSteamID64(filePath, mySteamId64);
+                    }
+                }
+
                 switchDevice.Disconnect();
                 MessageBox.Show("Pushed Switch saves to PC and backed up PC files.");
             }
@@ -123,12 +133,32 @@ namespace CrosSave
                 foreach (var file in Directory.GetFiles(pcSavePath))
                 {
                     var fileName = Path.GetFileName(file);
-                    var dest = Path.Combine(switchSavePath, fileName);
+                    string dest;
 
-                    // If file exists on Switch, delete it first
-                    if (switchDevice.FileExists(dest))
+                    if (GameItem.GameId == "0100B8E016F76000" && fileName.EndsWith(".dat", StringComparison.OrdinalIgnoreCase))
                     {
-                        switchDevice.DeleteFile(dest);
+                        // Remove .dat extension for Switch
+                        var baseName = Path.GetFileNameWithoutExtension(file);
+
+                        // Delete both extensionless and .dat files on Switch (if they exist)
+                        var destNoExt = Path.Combine(switchSavePath, baseName);
+                        var destWithExt = Path.Combine(switchSavePath, baseName + ".dat");
+
+                        if (switchDevice.FileExists(destNoExt))
+                            switchDevice.DeleteFile(destNoExt);
+                        if (switchDevice.FileExists(destWithExt))
+                            switchDevice.DeleteFile(destWithExt);
+
+                        // Upload as extensionless
+                        dest = destNoExt;
+                    }
+                    else
+                    {
+                        dest = Path.Combine(switchSavePath, fileName);
+
+                        // Delete file with same name if it exists
+                        if (switchDevice.FileExists(dest))
+                            switchDevice.DeleteFile(dest);
                     }
 
                     switchDevice.UploadFile(file, dest);
@@ -185,6 +215,22 @@ namespace CrosSave
                 var dest = Path.Combine(backupRoot, fileName);
                 switchDevice.DownloadFile(file, dest);
             }
+        }
+
+        public static void PatchNieRAutomataSteamID64(string filePath, ulong newSteamId64)
+        {
+            // Determine offset: SlotData_*.dat = 4, others = 0
+            int offset = filePath.Contains("SlotData", StringComparison.OrdinalIgnoreCase) ? 4 : 0;
+
+            // Patch SteamID64
+            byte[] idBytes = BitConverter.GetBytes(newSteamId64); // little-endian
+            byte[] fileBytes = File.ReadAllBytes(filePath);
+            if (fileBytes.Length < offset + 8)
+                throw new InvalidDataException("File too short to contain a SteamID64 at the expected offset.");
+
+            Array.Copy(idBytes, 0, fileBytes, offset, 8);
+            File.WriteAllBytes(filePath+".dat", fileBytes);
+            File.Delete(filePath);
         }
     }
 }
