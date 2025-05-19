@@ -1,44 +1,60 @@
-﻿using PortableDeviceApiLib;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
-using System.Management; //??
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using MediaDevices;
-using System.Linq;
+using System.ComponentModel; 
 
 namespace CrosSave
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         public ObservableCollection<GameItem> GameItems { get; set; } = new();
-        public bool HasData => GameItems.Count > 0;
-        //private const string DataFile = "E:\\Test\\game_data.json"; //TODO: read from configs or etc
-        private const string DataFile = "C:\\test\\New folder\\game_data.json";
-        //public string ImagePath = "https://tinfoil.media/ti/01003F601025E000/0/0/"
+        private ObservableCollection<GameItem> AllGameItems { get; set; } = new();
+        private static readonly string DataFile = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "CrosSave",
+                    "game_data.json"
+                );
+        private const string InstalledGamesPath = @"4: Installed games";
+        private const string SwitchDeviceName = "Switch";
+        private const string SavesPath = @"7: Saves\Installed games";
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private Visibility _noDataVisibility = Visibility.Collapsed;
+        public Visibility NoDataVisibility
+        {
+            get => _noDataVisibility;
+            set
+            {
+                if (_noDataVisibility != value)
+                {
+                    _noDataVisibility = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NoDataVisibility)));
+                }
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
-            //LoadGameData();
             LoadSwitchGameSaves();
             DataContext = this;
         }
 
         private void LoadGameData()
         {
-            if (File.Exists(DataFile)) //TODO:Fix data load logic
+            if (File.Exists(DataFile))
             {
                 var json = File.ReadAllText(DataFile);
                 var data = JsonSerializer.Deserialize<ObservableCollection<GameItem>>(json);
 
                 if (data != null)
                 {
-                    GameItems.Clear();
-                    foreach (var item in data)
+                    if (data != null)
                     {
-                        GameItems.Add(item);
+                        AllGameItems = data;
                     }
                 }
             }
@@ -46,66 +62,88 @@ namespace CrosSave
 
         private void SaveGameData()
         {
-            var json = JsonSerializer.Serialize(GameItems, new JsonSerializerOptions { WriteIndented = true });
+            var dir = Path.GetDirectoryName(DataFile);
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir!);
+
+            var json = JsonSerializer.Serialize(AllGameItems, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(DataFile, json);
         }
-
         private void RefreshData_Click(object sender, RoutedEventArgs e)
         {
-            //LoadGameData();
-            //GetSwitch();
             LoadSwitchGameSaves();
         }
 
-        private const string SwitchDeviceName = "Switch";
-        private const string SavesPath = @"7: Saves\Installed games";
-
         private void LoadSwitchGameSaves()
         {
-            GameItems.Clear();
+            // Load all saved data first
+            LoadGameData();
 
-            // Find Switch MTP device
             var devices = MediaDevice.GetDevices();
             var switchDevice = devices.FirstOrDefault(d => d.FriendlyName.Contains(SwitchDeviceName, StringComparison.OrdinalIgnoreCase));
             if (switchDevice == null)
             {
-                // No Switch found
                 GameItems.Clear();
                 NoDataToShow();
                 return;
             }
 
+            var installedGameIds = new HashSet<string>();
+
             using (switchDevice)
             {
                 switchDevice.Connect();
-                if (!switchDevice.DirectoryExists(SavesPath))
+                if (!switchDevice.DirectoryExists(InstalledGamesPath))
                 {
-                    // Path not found
                     GameItems.Clear();
                     NoDataToShow();
                     return;
                 }
 
-                // Enumerate games
-                var gameFolders = switchDevice.GetDirectories(SavesPath);
-                foreach (var gameFolder in gameFolders)
+                // Enumerate game name folders
+                var gameNameFolders = switchDevice.GetDirectories(InstalledGamesPath);
+                foreach (var gameNameFolder in gameNameFolders)
                 {
-                    var gameId = System.IO.Path.GetFileName(gameFolder);
-                    // Enumerate user folders
-                    var userFolders = switchDevice.GetDirectories(System.IO.Path.Combine(SavesPath, gameId));
-                    foreach (var userFolder in userFolders)
+                    var gameName = Path.GetFileName(gameNameFolder);
+                    // Enumerate game ID folders inside each game name folder
+                    var gameIdFolders = switchDevice.GetDirectories(Path.Combine(InstalledGamesPath, gameName));
+                    foreach (var gameIdFolder in gameIdFolders)
                     {
-                        var userId = System.IO.Path.GetFileName(userFolder);
-                        // Check if config exists for this game/user
-                        var config = FindConfigForGameUser(gameId, userId);
-                        if (config != null)
+                        var gameId = Path.GetFileName(gameIdFolder);
+                        installedGameIds.Add(gameId);
+
+                        // Enumerate user folders
+                        /*var userFolders = switchDevice.GetDirectories(System.IO.Path.Combine(SavesPath, gameId));
+                        foreach (var userFolder in userFolders)
                         {
-                            GameItems.Add(new GameItem
+                            var userId = System.IO.Path.GetFileName(userFolder);
+                            // Check if config exists for this game/user
+                            var config = FindConfigForGameUser(gameId, userId);
+                            if (config != null)
                             {
-                                Name = config.Name,
+                                GameItems.Add(new GameItem
+                                {
+                                    Name = config.Name,
+                                    GameId = gameId,
+                                    ConfigPath = config.ConfigPath,
+                                    // Add more fields as needed
+                                });
+                            }
+                        }*/
+                        // Try to find existing item in AllGameItems
+                        var existing = AllGameItems.FirstOrDefault(g => g.GameId == gameId);
+                        if (existing != null)
+                        {
+                            // Update name if changed
+                            existing.Name = gameName;
+                        }
+                        else
+                        {
+                            AllGameItems.Add(new GameItem
+                            {
+                                Name = gameName,
                                 GameId = gameId,
-                                ConfigPath = config.ConfigPath,
-                                // Add more fields as needed
+                                ConfigPath = "",
                             });
                         }
                     }
@@ -113,23 +151,32 @@ namespace CrosSave
                 switchDevice.Disconnect();
             }
 
+            // Only show items that are currently installed
+            GameItems.Clear();
+            foreach (var item in AllGameItems.Where(g => installedGameIds.Contains(g.GameId)))
+            {
+                GameItems.Add(item);
+            }
+
+            SaveGameData();
+
             if (GameItems.Count == 0)
             {
                 NoDataToShow();
+            }
+            else
+            {
+                NoDataVisibility = Visibility.Collapsed;
             }
         }
 
         private void NoDataToShow()
         {
-            // You can bind a property to your UI to show "No data to show"
-            // For example, set a bool property and use a TextBlock with a trigger in XAML
+            NoDataVisibility = Visibility.Visible;
         }
 
         private GameItem? FindConfigForGameUser(string gameId, string userId)
         {
-            // Load your local JSON config and find a match for gameId and userId
-            // For now, just return null if not found
-            // Example:
             return GameItems.FirstOrDefault(g => g.GameId == gameId /* && g.UserId == userId */);
         }
 
@@ -146,36 +193,6 @@ namespace CrosSave
                     popup.ShowDialog();
                     SaveGameData();
                 }
-            }
-        }
-
-        private void GetSwitch()
-        {
-            //mtp:/Switch/saves/
-            string query = "SELECT * FROM Win32_PnPEntity WHERE PNPClass = 'Portable Devices'";
-
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
-            foreach (ManagementObject device in searcher.Get())
-            {
-                Console.WriteLine($"Device: {device["Name"]}, ID: {device["DeviceID"]}");
-            }
-
-            var deviceManager = new PortableDeviceManager();
-            uint deviceCount = 1;
-            deviceManager.GetDevices(null, ref deviceCount);
-            if (deviceCount == 0)
-            {
-                Console.WriteLine("No MTP devices found.");
-                return;
-            }
-
-            string[] deviceIDs = new string[deviceCount];
-            deviceManager.GetDevices(ref deviceIDs[0], ref deviceCount);
-
-            foreach (var deviceID in deviceIDs) //https://stackoverflow.com/questions/6162046/enumerating-windows-portable-devices-in-c-sharp
-            {
-                Console.WriteLine($"Connected MTP Device: {deviceID}");
-                // Here, you can browse and copy files from Switch's save directory
             }
         }
     }

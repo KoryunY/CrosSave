@@ -95,5 +95,13 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
+        <TextBlock Text="No data to show"
+           Foreground="White"
+           FontSize="24"
+           FontWeight="Bold"
+           HorizontalAlignment="Center"
+           VerticalAlignment="Center"
+           Visibility="{Binding NoDataVisibility}"
+           Grid.RowSpan="2"/>
     </Grid>
 </Window>
