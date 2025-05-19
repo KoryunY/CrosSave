@@ -261,7 +261,40 @@ namespace CrosSave
         }
     }
 
-    public class GameItem
+    public class GameItem : INotifyPropertyChanged
+    {
+        private string _name = string.Empty;
+        private string _gameId = string.Empty;
+        private string _configPath = string.Empty;
+
+        public string Name
+        {
+            get => _name;
+            set { if (_name != value) { _name = value; OnPropertyChanged(nameof(Name)); } }
+        }
+
+        public string GameId
+        {
+            get => _gameId;
+            set { if (_gameId != value) { _gameId = value; OnPropertyChanged(nameof(GameId)); } }
+        }
+
+        public string ConfigPath
+        {
+            get => _configPath;
+            set { if (_configPath != value) { _configPath = value; OnPropertyChanged(nameof(ConfigPath)); OnPropertyChanged(nameof(IsConfigured)); } }
+        }
+
+        [JsonIgnore]
+        public bool IsConfigured => !string.IsNullOrEmpty(ConfigPath);
+
+        public string ImageUrl => $"https://tinfoil.media/ti/{GameId}/0/0/";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string propertyName) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+    /*public class GameItem
     {
         public string Name { get; set; } = string.Empty;
         public string GameId { get; set; } = string.Empty;
@@ -269,5 +302,5 @@ namespace CrosSave
         [JsonIgnore]
         public bool IsConfigured => !string.IsNullOrEmpty(ConfigPath);
         public string ImageUrl => $"https://tinfoil.media/ti/{GameId}/0/0/";
-    }
+    }*/
 }
