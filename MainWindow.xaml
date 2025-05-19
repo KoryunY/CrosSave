@@ -12,8 +12,14 @@
 
         <StackPanel Orientation="Horizontal" Margin="10">
             <Button Content="Refresh 🔄" Click="RefreshData_Click" Padding="5" Background="#3a3f51" Foreground="White"/>
+            <ComboBox ItemsSource="{Binding UserProfiles}"
+              SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+              DisplayMemberPath="DisplayName"
+              Width="200"
+              Margin="10,0,0,0"
+              VerticalAlignment="Center"
+              />
         </StackPanel>
-
         <ScrollViewer Grid.Row="1" Margin="10" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding GameItems}"   
                           HorizontalContentAlignment="Stretch">
