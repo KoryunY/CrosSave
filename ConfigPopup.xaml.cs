@@ -12,7 +12,6 @@ namespace CrosSave
     public partial class ConfigPopup : Window
     {
         private GameItem GameItem { get; }
-        const ulong mySteamId64 = 712312312381182128;
 
         public ConfigPopup(GameItem item)
         {
@@ -38,6 +37,13 @@ namespace CrosSave
                 var user = mainWindow?.SelectedUser?.UserId ?? "";
                 var gameName = GameItem.Name;
                 var pcSavePath = GameItem.ConfigPath;
+                var steamId64 = MainWindow.LoadAppSettings().SteamId64;
+
+                if (steamId64 == null)
+                {
+                    MessageBox.Show("SteamID64 is not configured in settings. Please set it in the app settings.");
+                    return;
+                }
 
                 if (string.IsNullOrEmpty(pcSavePath) || !Directory.Exists(pcSavePath))
                 {
@@ -80,7 +86,7 @@ namespace CrosSave
                     string[] nierFiles = Directory.GetFiles(pcSavePath);
                     foreach (var filePath in nierFiles)
                     {
-                        PatchNieRAutomataSteamID64(filePath, mySteamId64);
+                        PatchNieRAutomataSteamID64(filePath, steamId64.Value);
                     }
                 }
 

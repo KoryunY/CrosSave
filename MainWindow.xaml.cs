@@ -23,10 +23,16 @@ namespace CrosSave
                     "CrosSave",
                     "game_data.json"
                 );
+        public static string SettingsFile => Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "CrosSave",
+                    "settings.json"
+                );
         public static string InstalledGamesPath = @"4: Installed games";
         public static string SwitchDeviceName = "Switch";
         public static string SavesPath = @"7: Saves\Installed games";
 
+        private static AppSettings? _appSettingsCache;
         private Dictionary<string, List<GameItem>> UserGameItems { get; set; } = new();
         public ObservableCollection<GameItem> GameItems { get; set; } = new();
         private ObservableCollection<GameItem> AllGameItems { get; set; } = new();
@@ -60,12 +66,72 @@ namespace CrosSave
                 }
             }
         }
+        private string _steamId64Input = "";
+        public string SteamId64Input
+        {
+            get => _steamId64Input;
+            set
+            {
+                if (_steamId64Input != value)
+                {
+                    _steamId64Input = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SteamId64Input)));
+                }
+            }
+        }
+
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = this;
             LoadUserProfiles();
+
+            // Load SteamID64 from settings on startup
+            var settings = LoadAppSettings();
+            SteamId64Input = settings.SteamId64?.ToString() ?? "";
+        }
+
+        public static AppSettings LoadAppSettings()
+        {
+            if (_appSettingsCache != null) return _appSettingsCache;
+
+            if (File.Exists(SettingsFile))
+            {
+                var json = File.ReadAllText(SettingsFile);
+                _appSettingsCache = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            }
+            else
+            {
+                _appSettingsCache = new AppSettings();
+            }
+            return _appSettingsCache;
+        }
+
+        public static void SaveAppSettings(AppSettings settings)
+        {
+            var dir = Path.GetDirectoryName(SettingsFile);
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir!);
+
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(SettingsFile, json);
+            _appSettingsCache = settings;
+        }
+
+        private void SaveSteamId64_Click(object sender, RoutedEventArgs e)
+        {
+            if (ulong.TryParse(SteamId64Input, out var steamId))
+            {
+                var settings = LoadAppSettings();
+                settings.SteamId64 = steamId;
+                SaveAppSettings(settings);
+                MessageBox.Show("SteamID64 saved.", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show("Please enter a valid numeric SteamID64.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void LoadUserProfiles()
